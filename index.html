@@ -13,7 +13,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-image: url('https://wallpapers.com/images/featured/minimalist-7xpryajznty61ra3.jpg');
+            background-image: url('https://c4.wallpaperflare.com/wallpaper/285/172/9/sunset-8k-forest-4k-wallpaper-preview.jpg');
             background-size: cover;
             background-position: center;
         }
@@ -235,6 +235,7 @@
         let monthlyGoal = parseInt(localStorage.getItem('monthlyGoal')) || 300;
         let weeklyGoal = parseInt(localStorage.getItem('weeklyGoal')) || 70;
         let taxPercentage = parseFloat(localStorage.getItem('taxPercentage')) || 5;
+        let darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
         let username = localStorage.getItem('username') || '';
         let profilePic = localStorage.getItem('profilePic') || '';
         let timerInterval = null;
@@ -350,7 +351,10 @@
         function updateIncome() {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' });
             const dailyIncome = (dailyLog[today] || 0) * incomeRate;
-            const totalRevenue = Object.values(dailyLog).reduce((acc, curr) => acc + curr, 0) * incomeRate;
+            const currentMonthStr = new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }).slice(0, 7);
+            const totalRevenue = Object.entries(dailyLog).reduce((acc, [date, count]) => {
+                return date.startsWith(currentMonthStr) ? acc + count : acc;
+            }, 0) * incomeRate;
             const totalIncome = totalRevenue - (totalRevenue * (taxPercentage / 100));
             document.getElementById('daily-income').innerText = `Daily Income: ${dailyIncome} TK`;
             document.getElementById('monthly-income').innerText = `Monthly Income (Revenue - Tax): ${totalIncome.toFixed(2)} TK`;
@@ -359,7 +363,9 @@
         function updateGoals() {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' });
             const solvedToday = dailyLog[today] || 0;
-            const solvedThisMonth = Object.values(dailyLog).reduce((acc, curr) => acc + curr, 0);
+            const solvedThisMonth = Object.entries(dailyLog).reduce((acc, [date, count]) => {
+                return date.startsWith(new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }).slice(0, 7)) ? acc + count : acc;
+            }, 0);
             const solvedThisWeek = calculateWeeklySolves();
 
             document.getElementById('daily-goal-progress').innerText = `Daily Goal: ${solvedToday} / ${dailyGoal}`;
@@ -406,6 +412,7 @@
             localStorage.setItem('questionsSolved', questionsSolved);
             localStorage.setItem('satisfiedSolves', satisfiedSolves);
             localStorage.setItem('taxPercentage', taxPercentage);
+            localStorage.setItem('darkMode', JSON.stringify(darkMode));
         }
 
         function setProfile() {
@@ -455,6 +462,11 @@
             }
             if (profilePic) {
                 document.getElementById('profile-picture').src = profilePic;
+            }
+            darkMode = JSON.parse(localStorage.getItem('darkMode')) || false;
+            if (darkMode) {
+                document.body.classList.add('dark');
+                document.getElementById('dark-mode-button').innerText = 'Light Mode';
             }
             updateDisplay();
             if (username && profilePic) {
@@ -572,15 +584,19 @@
         }
 
         function toggleDarkMode() {
+            darkMode = !darkMode;
             document.body.classList.toggle('dark');
             const darkModeButton = document.getElementById('dark-mode-button');
-            darkModeButton.innerText = document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+            darkModeButton.innerText = darkMode ? 'Light Mode' : 'Dark Mode';
+            localStorage.setItem('darkMode', JSON.stringify(darkMode));
         }
 
         function updateProgressBars() {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' });
             const solvedToday = dailyLog[today] || 0;
-            const solvedThisMonth = Object.values(dailyLog).reduce((acc, curr) => acc + curr, 0);
+            const solvedThisMonth = Object.entries(dailyLog).reduce((acc, [date, count]) => {
+                return date.startsWith(new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }).slice(0, 7)) ? acc + count : acc;
+            }, 0);
             const solvedThisWeek = calculateWeeklySolves();
 
             document.getElementById('daily-progress-bar').style.width = `${(solvedToday / dailyGoal) * 100}%`;
@@ -599,7 +615,9 @@
         function checkNotifications() {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' });
             const solvedToday = dailyLog[today] || 0;
-            const solvedThisMonth = Object.values(dailyLog).reduce((acc, curr) => acc + curr, 0);
+            const solvedThisMonth = Object.entries(dailyLog).reduce((acc, [date, count]) => {
+                return date.startsWith(new Date(currentYear, currentMonth, 1).toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }).slice(0, 7)) ? acc + count : acc;
+            }, 0);
             const solvedThisWeek = calculateWeeklySolves();
 
             if (solvedToday >= dailyGoal) {
@@ -733,6 +751,7 @@
             <p id="monthly-income">Monthly Income (Revenue - Tax): 0 TK</p>
             <label for="tax-percentage">Select Tax Percentage:</label>
             <select id="tax-percentage" onchange="setTaxPercentage()">
+                <option value="0">0%</option>
                 <option value="5">5%</option>
                 <option value="6">6%</option>
                 <option value="7">7%</option>
@@ -812,3 +831,4 @@
     </div>
 </body>
 </html>
+
